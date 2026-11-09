@@ -6,6 +6,7 @@
 
 <div class="calendar-add">
     <a class="button is-info" href="javascript:void(0);" onclick="window.vue.bShowAddCalendarItem = true;">{{ __('app.add') }}</a>
+    <a class="button is-link" href="javascript:void(0);" onclick="window.vue.bShowCalendarSubscribe = true;">{{ __('app.subscribe_to_calendar') }}</a>
 </div>
 
 <div class="calendar-menu">

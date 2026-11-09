@@ -1336,6 +1336,40 @@
 				</div>
 			</div>
 
+			<div class="modal" :class="{'is-active': bShowCalendarSubscribe}">
+				<div class="modal-background"></div>
+				<div class="modal-card">
+					<header class="modal-card-head is-stretched">
+						<p class="modal-card-title">{{ __('app.subscribe_to_calendar') }}</p>
+						<button class="delete" aria-label="close" onclick="window.vue.bShowCalendarSubscribe = false;"></button>
+					</header>
+					<section class="modal-card-body is-stretched">
+						@if ((isset($calendar_feed_url)) && ($calendar_feed_url !== null))
+							<div class="field">
+								<label class="label">{{ __('app.calendar_feed_url') }}</label>
+								<div class="field has-addons is-stretched">
+									<div class="control is-stretched">
+										<input class="input" type="text" id="calendar-feed-url" value="{{ $calendar_feed_url }}" readonly>
+									</div>
+									<div class="control">
+										<a class="button is-info" href="javascript:void(0);" onclick="window.vue.copyToClipboard(document.getElementById('calendar-feed-url').value);">{{ __('app.copy_to_clipboard') }}</a>
+									</div>
+								</div>
+							</div>
+
+							<div class="field">
+								<a class="button is-link" href="{{ preg_replace('/^https?:\/\//', 'webcal://', $calendar_feed_url) }}">{{ __('app.subscribe_now') }}</a>
+							</div>
+						@else
+							<p>{{ __('app.calendar_feed_no_api_key') }} <a href="{{ url('/admin?tab=api') }}">{{ __('app.api') }}</a></p>
+						@endif
+					</section>
+					<footer class="modal-card-foot is-stretched">
+						<button class="button" onclick="window.vue.bShowCalendarSubscribe = false;">{{ __('app.close') }}</button>
+					</footer>
+				</div>
+			</div>
+
 			<div class="modal" :class="{'is-active': bShowEditCalendarItem}">
 				<div class="modal-background"></div>
 				<div class="modal-card">

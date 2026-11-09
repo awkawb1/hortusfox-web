@@ -31,10 +31,15 @@ class CalendarController extends BaseController {
 	public function view_calendar($request)
 	{
 		$user = UserModel::getAuthUser();
-		
+
+		$api_keys = array_filter(ApiModel::getKeys()->asArray(), function ($key) {
+			return $key['active'];
+		});
+
 		return parent::view(['content', 'calendar'], [
             'title' => __('app.calendar'),
-			'user' => $user
+			'user' => $user,
+			'calendar_feed_url' => (count($api_keys) > 0) ? url('/api/calendar/feed.ics?token=' . reset($api_keys)['token']) : null
 		]);
 	}
 

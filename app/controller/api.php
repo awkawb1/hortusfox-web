@@ -1032,8 +1032,44 @@ class ApiController extends BaseController {
     }
 
     /**
+	 * Handles URL: /api/calendar/feed.ics
+	 *
+	 * @param Asatru\Controller\ControllerArg $request
+	 * @return void
+	 */
+    public function calendar_feed($request)
+    {
+        if (!app('calendar_enable')) {
+            http_response_code(403);
+            exit();
+        }
+
+        $date_from = date('Y-m-d', strtotime('-90 days'));
+        $date_till = date('Y-m-d', strtotime('+365 days'));
+
+        $items = CalendarModel::getItems($date_from, $date_till)->asArray();
+
+        foreach ($items as &$value) {
+            if (isset($value['class_name'])) {
+                $calendar_class_item = CalendarClassModel::findClass($value['class_name']);
+                $value['class_name'] = ($calendar_class_item) ? __($calendar_class_item->get('name')) : __('app.unknown_calendar_class');
+            }
+        }
+
+        $ics = ICalModule::buildFeed($items, app('workspace'));
+
+        header('Content-Type: text/calendar; charset=utf-8');
+        header('Content-Disposition: inline; filename="calendar.ics"');
+        header('Content-Length: ' . strlen($ics));
+
+        echo $ics;
+
+        exit();
+    }
+
+    /**
 	 * Handles URL: /api/calendar/add
-	 * 
+	 *
 	 * @param Asatru\Controller\ControllerArg $request
 	 * @return Asatru\View\JsonHandler
 	 */

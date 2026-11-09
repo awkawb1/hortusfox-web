@@ -60,6 +60,7 @@ window.createVueInstance = function(element) {
             bShowSharePhoto: false,
             bShowAddFirstLocation: false,
             bShowAddCalendarItem: false,
+            bShowCalendarSubscribe: false,
             bShowEditCalendarItem: false,
             bShowCreateNewCalendarClass: false,
             bShowPlantQRCode: false,
