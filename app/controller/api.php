@@ -702,8 +702,48 @@ class ApiController extends BaseController {
     }
 
     /**
+	 * Handles URL: /api/tasks/feed.ics
+	 *
+	 * @param Asatru\Controller\ControllerArg $request
+	 * @return void
+	 */
+    public function tasks_feed($request)
+    {
+        if (!app('tasks_enable')) {
+            http_response_code(403);
+            exit();
+        }
+
+        $tasks = TasksModel::getTasksWithDueDate()->asArray();
+
+        foreach ($tasks as &$task) {
+            $task['plant_name'] = null;
+
+            if (PlantTasksRefModel::hasPlantReference($task['id'])) {
+                $reference = PlantTasksRefModel::getForTask($task['id']);
+                if ($reference) {
+                    $plant = PlantsModel::getDetails($reference->get('plant_id'));
+                    if ($plant) {
+                        $task['plant_name'] = $plant->get('name');
+                    }
+                }
+            }
+        }
+
+        $ics = ICalModule::buildTaskFeed($tasks, app('workspace'));
+
+        header('Content-Type: text/calendar; charset=utf-8');
+        header('Content-Disposition: inline; filename="tasks.ics"');
+        header('Content-Length: ' . strlen($ics));
+
+        echo $ics;
+
+        exit();
+    }
+
+    /**
 	 * Handles URL: /api/tasks/fetch
-	 * 
+	 *
 	 * @param Asatru\Controller\ControllerArg $request
 	 * @return Asatru\View\JsonHandler
 	 */

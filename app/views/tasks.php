@@ -6,6 +6,7 @@
 
 <div class="margin-vertical">
     <a class="button is-success" href="javascript:void(0);" onclick="window.vue.bShowCreateTask = true;">{{ __('app.create_new') }}</a>
+    <a class="button is-link" href="javascript:void(0);" onclick="window.vue.bShowTasksSubscribe = true;">{{ __('app.subscribe_to_tasks') }}</a>
 </div>
 
 <div class="margin-vertical">

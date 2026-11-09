@@ -36,10 +36,15 @@ class TasksController extends BaseController {
 
 		$tasks = TasksModel::getTasks($done);
 
+		$api_keys = array_filter(ApiModel::getKeys()->asArray(), function ($key) {
+			return $key['active'];
+		});
+
 		return parent::view(['content', 'tasks'], [
 			'title' => __('app.tasks'),
 			'user' => $user,
-			'tasks' => $tasks
+			'tasks' => $tasks,
+			'tasks_feed_url' => (count($api_keys) > 0) ? url('/api/tasks/feed.ics?token=' . reset($api_keys)['token']) : null
 		]);
 	}
 

@@ -187,6 +187,19 @@ class TasksModel extends \Asatru\Database\Model {
      * @return mixed
      * @throws \Exception
      */
+    public static function getTasksWithDueDate()
+    {
+        try {
+            return static::raw('SELECT * FROM `@THIS` WHERE done = 0 AND due_date IS NOT NULL ORDER BY due_date ASC');
+        } catch (\Exception $e) {
+            throw $e;
+        }
+    }
+
+    /**
+     * @return mixed
+     * @throws \Exception
+     */
     public static function getOverdueTasks()
     {
         try {
