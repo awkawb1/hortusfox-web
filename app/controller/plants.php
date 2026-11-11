@@ -19,8 +19,51 @@ class PlantsController extends BaseController {
 	}
 
     /**
+	 * Handles URL: /plants/all
+	 *
+	 * @param Asatru\Controller\ControllerArg $request
+	 * @return Asatru\View\ViewHandler|Asatru\View\RedirectHandler
+	 */
+	public function view_all_plants($request)
+	{
+		$user = UserModel::getAuthUser();
+
+		$sorting = $request->params()->query('sorting', $_COOKIE['list_sorting_style'] ?? null);
+		$direction = $request->params()->query('direction', $_COOKIE['list_order_style'] ?? null);
+		$show = $request->params()->query('show', null);
+
+		$plants = PlantsModel::getAllPlants($sorting, $direction);
+
+		if ((is_string($show)) && ((isset($_COOKIE['list_show_style'])) && ($_COOKIE['list_show_style'] !== $show))) {
+			setcookie('list_show_style', $show, time() + 31536000, '/');
+			return redirect('/plants/all');
+		}
+
+		if ((is_string($sorting)) && ((isset($_COOKIE['list_sorting_style'])) && ($_COOKIE['list_sorting_style'] !== $sorting))) {
+			setcookie('list_sorting_style', $sorting, time() + 31536000, '/');
+			return redirect('/plants/all');
+		}
+
+		if ((is_string($direction)) && ((isset($_COOKIE['list_order_style'])) && ($_COOKIE['list_order_style'] !== $direction))) {
+			setcookie('list_order_style', $direction, time() + 31536000, '/');
+			return redirect('/plants/all');
+		}
+
+		return parent::view(['content', 'plants_all'], [
+			'title' => __('app.all_plants'),
+			'user' => $user,
+			'plants' => $plants,
+			'sorting_types' => PlantsModel::$sorting_list,
+			'sorting_dirs' => PlantsModel::$sorting_dir,
+			'location' => 'all',
+			'list_sorting_style' => $sorting,
+			'list_order_style' => $direction
+		]);
+	}
+
+    /**
 	 * Handles URL: /plants/location/{id}
-	 * 
+	 *
 	 * @param Asatru\Controller\ControllerArg $request
 	 * @return Asatru\View\ViewHandler|Asatru\View\RedirectHandler
 	 */
@@ -184,6 +227,8 @@ class PlantsController extends BaseController {
 			return redirect('/');
 		}
 
+		$back_url = ($request->params()->query('from', null) === 'all') ? url('/plants/all') : url('/plants/location/' . $plant_data->get('location'));
+
 		$plant_ident = '#' . sprintf('%04d', $plant_data->get('id'));
 		
 		$edit_user_name = '';
@@ -240,7 +285,8 @@ class PlantsController extends BaseController {
 			'plant_log_entries' => $plant_log_entries,
 			'offspring' => $offspring,
 			'edit_user_name' => $edit_user_name,
-			'edit_user_when' => $edit_user_when
+			'edit_user_when' => $edit_user_when,
+			'back_url' => $back_url
 		]);
 	}
 
@@ -896,7 +942,17 @@ class PlantsController extends BaseController {
 			$bulkvalue = $request->params()->query('bulkvalue');
 			$bulktype = $request->params()->query('bulktype');
 
+			$touched_locations = [];
+
 			foreach ($plants as $plant) {
+				if (!is_numeric($location)) {
+					$plant_data = PlantsModel::getDetails($plant[0]);
+					if ($plant_data) {
+						$orig_location = $plant_data->get('location');
+						$touched_locations[$orig_location] = ($touched_locations[$orig_location] ?? 0) + 1;
+					}
+				}
+
 				if (!$custom) {
 					PlantsModel::editPlantAttribute($plant[0], $attribute, $bulkvalue);
 				} else {
@@ -904,7 +960,13 @@ class PlantsController extends BaseController {
 				}
 			}
 
-			LocationLogModel::addEntry($location, '[System] bulk_action ' . $attribute . '@' . count($plants));
+			if (is_numeric($location)) {
+				LocationLogModel::addEntry($location, '[System] bulk_action ' . $attribute . '@' . count($plants));
+			} else {
+				foreach ($touched_locations as $loc_id => $touched_count) {
+					LocationLogModel::addEntry($loc_id, '[System] bulk_action ' . $attribute . '@' . $touched_count);
+				}
+			}
 
 			return json([
 				'code' => 200

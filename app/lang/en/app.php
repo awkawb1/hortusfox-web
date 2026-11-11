@@ -26,6 +26,7 @@ return [
 	'dashboard' => 'Dashboard',
 	'welcome_message' => 'Hi {name}, welcome back!',
 	'locations' => 'Locations',
+	'all_plants' => 'All Plants',
 	'select_location_to_proceed' => 'Select a location to view the associated plants',
 	'plants' => 'Plants',
 	'add_plant' => 'Add Plant',

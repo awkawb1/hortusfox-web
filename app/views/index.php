@@ -261,6 +261,10 @@
 		<div class="plants-empty-text">{{ __('app.content_empty') }}</div>
 	</div>
 	@endif
+
+	<div class="last-added-or-authored-plants-action">
+		<a class="button is-link" href="{{ url('/plants/all') }}">{{ __('app.view_more') }}</a>
+	</div>
 </div>
 
 @if ($user->get('show_log'))

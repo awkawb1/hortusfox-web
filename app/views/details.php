@@ -5,7 +5,7 @@
 </div>
 
 <div class="margin-vertical">
-	<a class="is-default-link" href="{{ url('/plants/location/' . $plant->get('location')) }}">{{ __('app.back_to_list') }}</a>
+	<a class="is-default-link" href="{{ $back_url }}">{{ __('app.back_to_list') }}</a>
 </div>
 
 @include('layout/flashmsg.php')

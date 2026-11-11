@@ -114,6 +114,12 @@
                 </a>
 
                 <div class="navbar-dropdown">
+                    <a class="navbar-item" href="{{ url('/plants/all') }}">
+                        {{ __('app.all_plants') }}
+                    </a>
+
+                    <hr class="navbar-divider">
+
                     @foreach (LocationsModel::getAll() as $location_item)
                         <a class="navbar-item" href="{{ url('/plants/location/' . $location_item->get('id')) }}">
                             {{ $location_item->get('name') }}
