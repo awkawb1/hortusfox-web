@@ -9,3 +9,5 @@
 .phpunit.result.cache
 do_install
 **/.DS_Store
+/result
+/nixos.qcow2

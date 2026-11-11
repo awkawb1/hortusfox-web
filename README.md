@@ -45,6 +45,7 @@
   - [Installer](#installer)
   - [Manual](#manual)
   - [AquaShell](#aquashell)
+  - [NixOS](#nixos)
 - [Cronjobs](#cronjobs)
 - [Application testing](#application-testing)
 - [System requirements](#system-requirements)
@@ -360,6 +361,95 @@ aquashell scripts/install.dnys --workspace "Your workspace name" --username "You
 Since there is a confirmation prompt once all input fields are provided, you can use the `--continue` argument to skip this confirmation.
 
 **Note**: If you don't have a database access password (e.g. due to a local XAMPP installation), you can pass `--dbpw "!"` to specify an empty password.
+
+### NixOS
+
+This repository is also a [Nix flake](https://nixos.wiki/wiki/Flakes). It packages the project straight from its own
+git-tracked source (not a separately pinned release) and provides a `services.hortusfox-web` NixOS module that runs
+it as a full service: MariaDB + PHP-FPM + nginx or Caddy + ACME + the app's own cron endpoints on systemd timers.
+
+#### Flake outputs
+
+| Output | What it is |
+| --- | --- |
+| `packages.hortusfox-web` / `packages.default` | The built HortusFox package. |
+| `overlays.default` | Adds `hortusfox-web` to `pkgs`. |
+| `nixosModules.default` | The `services.hortusfox-web` module. |
+| `devShells.default` | PHP 8.3 + extensions, Composer, Node, MariaDB, `just`, `nix-output-monitor` -- everything needed to develop the app itself (see [Manual](#manual)). |
+| `checks.<system>.build` | Builds the package. |
+| `checks.<system>.vm-test` / `vm-test-caddy` | Boots a full NixOS VM test per proxy backend and exercises a real login plus the main plant views. |
+| `nixosConfigurations.test` | A throwaway VM for manual poking -- not meant for real deployments. |
+
+#### Deploying the module
+
+```nix
+{
+  inputs.hortusfox-web.url = "github:danielbrendel/hortusfox-web";
+
+  outputs = { self, nixpkgs, hortusfox-web, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        hortusfox-web.nixosModules.default
+        {
+          services.hortusfox-web = {
+            enable = true;
+            domain = "plants.example.com";
+            adminAccount.passwordFile = "/run/secrets/hortusfox-admin-password";
+            adminAccount.email = "you@example.com";
+            secretFile = "/run/secrets/hortusfox.env"; # SMTP_PASSWORD, API keys, ...
+          };
+
+          # proxy.ssl defaults to true (forceSSL + ACME); the host config
+          # must then set one of these globally:
+          security.acme = { acceptTerms = true; defaults.email = "you@example.com"; };
+          # or, if services.hortusfox-web.proxy.server = "caddy":
+          # services.caddy.email = "you@example.com";
+        }
+      ];
+    };
+  };
+}
+```
+
+#### `services.hortusfox-web` options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `enable` | bool | `false` | Enable the service. |
+| `domain` | string | `"localhost"` | FQDN served over HTTPS; used for the nginx/caddy vhost and ACME. |
+| `port` | null or port | `null` | Appended to the app's own canonical URL and, when set, overrides the port PHP sees for generated asset/redirect URLs -- needed whenever the proxy is only reachable through a forwarded/non-standard port. Does not change what port nginx/caddy actually listen on. |
+| `package` | package | built from `package.nix` | The HortusFox package to deploy. |
+| `proxy.server` | `"nginx"` \| `"caddy"` | `"nginx"` | Reverse proxy/webserver fronting PHP-FPM. |
+| `proxy.ssl` | bool | `true` | Force HTTPS + request an ACME cert for the vhost. Set `false` for local/test deployments with no real domain or internet access to reach Let's Encrypt. |
+| `phpPackage` | package | `pkgs.php83` | Base PHP the PHP-FPM environment is built from (extensions are added automatically). |
+| `user` / `group` | string | `"hortusfox"` | System user/group the app and its PHP-FPM pool run as. |
+| `timezone` | string | `"UTC"` | App timezone. |
+| `language` | string | `"en"` | UI language. Must match a language code shipped under `app/lang/`. |
+| `workspace` | string | `"My workspace"` | Workspace name shown in the UI. |
+| `database.name` | string | `"hortusfox"` | MariaDB database name. |
+| `secretFile` | null or path | `null` | File of `KEY=VALUE` lines (`SMTP_PASSWORD`, API keys, ...) appended verbatim onto the generated `.env` at runtime. Keep it out of the Nix store in production (agenix/sops-nix). |
+| `backupMaxAge` | null or string | `"1d"` | How long auto-backup zips under `public/backup` are kept before auto-deletion (systemd-tmpfiles "age" syntax). `null` disables cleanup. |
+| `adminAccount.passwordFile` | null or path | `null` | Plaintext password file for a seeded initial admin account. Without this, a fresh deployment has no way to log in at all -- there is no other way to create the first user. Only takes effect on first boot. |
+| `adminAccount.username` | string | `"admin"` | Display name for the seeded admin account. |
+| `adminAccount.email` | string | `"admin@${domain}"` | Login email for the seeded admin account. |
+| `settings` | attrs of str/int/bool | `{ }` | Extra/overriding `.env` entries. Note `php asatru` (used for migrations) only runs when `APP_DEBUG` is true. |
+| `smtp.host` / `.port` / `.username` / `.fromName` / `.fromAddress` / `.encryption` | -- | see `nixos-module/default.nix` | SMTP settings (password goes via `secretFile` instead). |
+
+#### Local development / testing
+
+```bash
+nix develop            # dev shell: PHP 8.3 + extensions, composer, node, mariadb, just, nix-output-monitor
+just build-vm          # build the throwaway test VM (nixosConfigurations.test)
+just boot-vm           # boot it in-terminal (QEMU, serial console); http://127.0.0.1:8080
+just clean             # tear down local VM artifacts (this project's own qemu instance + build outputs)
+
+nix flake check        # evaluate all outputs; builds the package + boots both proxy-backend VM tests
+nix flake check -L     # same, with full build/VM logs streamed (slow: boots two real VMs)
+```
+
+The test VM's seeded admin account logs in with the password in `tests/hortusfox_web_test_password`
+(currently `password`) -- see `tests/default.nix` for its full config.
 
 ## Cronjobs
 
