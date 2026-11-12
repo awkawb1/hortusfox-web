@@ -227,7 +227,15 @@ class PlantsController extends BaseController {
 			return redirect('/');
 		}
 
-		$back_url = ($request->params()->query('from', null) === 'all') ? url('/plants/all') : url('/plants/location/' . $plant_data->get('location'));
+		$from = $request->params()->query('from', null);
+
+		if ($from === 'all') {
+			$back_url = url('/plants/all');
+		} else if ($from === 'search') {
+			$back_url = url('/search');
+		} else {
+			$back_url = url('/plants/location/' . $plant_data->get('location'));
+		}
 
 		$plant_ident = '#' . sprintf('%04d', $plant_data->get('id'));
 		

@@ -65,7 +65,7 @@
 
         @if (count($plants) > 0)
             @foreach ($plants as $plant)
-                <a href="{{ url('/plants/details/' . $plant['id']) }}">
+                <a href="{{ url('/plants/details/' . $plant['id'] . '?from=search') }}">
                     <div class="plant-card">
                         <div class="plant-card-image" style="background-image: url('{{ abs_photo($plant['photo']) }}');">
                             <div class="plant-card-overlay"></div>
