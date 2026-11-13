@@ -29,9 +29,19 @@ let
   # DB-generated at install time, not a Nix-level secret).
   cronPwFile = "${stateDir}/.cronjob-pw";
 
-  # Writable subdirs that must survive reboots.
+  # Writable subdirs that must survive reboots. app/migrations matters more
+  # than it looks: it holds verhist.json (gitignored, never shipped in the
+  # package -- see upstream's own dockerfile, which VOLUMEs this exact
+  # directory for the same reason), which `php asatru migrate:upgrade`
+  # uses to know which version-specific upgrade steps it's already run.
+  # Without persisting it, every boot starts from an empty history, and
+  # MigrationUpgrade (app/commands/MigrationUpgrade.php) defaults the
+  # "previous version" to the *current* version whenever history is empty
+  # -- collapsing the upgrade range to nothing and silently skipping every
+  # intermediate version's schema changes (e.g. AppModel.date_format/
+  # time_format, added in the 6.2 step) forever, with no error anywhere.
   writableDirs = [
-    "cache" "app/logs"
+    "cache" "app/logs" "app/migrations"
     "public/img" "public/attachments" "public/backup" "public/themes"
   ];
 
